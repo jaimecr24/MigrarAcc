@@ -32,11 +32,11 @@ namespace migrarAcc
                 string pass = prompt.Result;
                 oledbCon = new OleDbConnection("Provider=Microsoft.ACE.OLEDB.12.0;Data Source=F:\\Repo\\PERSONAL\\MiBiblioteca.mdb;Persist Security Info=True;Jet OLEDB:Database Password=" + pass);
             }
-            //MigrarAUTOR();
-            //MigrarTEMA();
-            //MigrarOBRAS();
-            //MigrarAUTOROBRA();
-            //MigrarEdicionLibro();
+            MigrarAUTOR();
+            MigrarTEMA();
+            MigrarOBRAS();
+            MigrarAUTOROBRA();
+            MigrarEdicionLibro();
         }
 
         private void MigrarAUTOR()
@@ -74,11 +74,11 @@ namespace migrarAcc
                     ? "null"
                     : "'" + ((String)fila["Comentario"]).Replace("'", "''") + "'";
 
-                cmd.CommandText = $"INSERT INTO AUTOR(NOMBRE,ANYNAC,COMENT) VALUES({nombre},{añoNac},{comentario})";
+                cmd.CommandText = $"INSERT INTO autor(NOMBRE,ANYNAC,COMENT) VALUES({nombre},{añoNac},{comentario})";
                 cmd.ExecuteNonQuery();
                 i++;
             }
-            this.txtLog.AppendText($"Total registros: {nfilas} - Migrados: {i}\n");
+            this.txtLog.AppendText($"\r\nTotal registros: {nfilas} - Migrados: {i}");
             mysqlCon.Close();
             oledbCon.Close();
         }
@@ -103,7 +103,7 @@ namespace migrarAcc
             int nfilas = temaDV.Count;
             IEnumerator enmTema = temaDV.GetEnumerator();
 
-            this.txtLog.AppendText("TABLA TEMA... ");
+            this.txtLog.AppendText("\r\nTABLA TEMA... ");
             int i = 0;
             while (enmTema.MoveNext())
             {
@@ -116,11 +116,11 @@ namespace migrarAcc
                     ? "null"
                     : "'" + ((String)fila["Comentario"]).Replace("'", "''") + "'";
 
-                cmd.CommandText = $"INSERT INTO TEMA(SHNOMBRE, NOMBRE, COMENT) VALUES({shNombre},{nombre},{comentario})";
+                cmd.CommandText = $"INSERT INTO tema(SHNOMBRE, NOMBRE, COMENT) VALUES({shNombre},{nombre},{comentario})";
                 cmd.ExecuteNonQuery();
                 i++;
             }
-            this.txtLog.AppendText($"Total registros: {nfilas} - Migrados: {i}\n");
+            this.txtLog.AppendText($"\r\nTotal registros: {nfilas} - Migrados: {i}");
             mysqlCon.Close();
             oledbCon.Close();
         }
@@ -146,7 +146,7 @@ namespace migrarAcc
             int nfilas = obraDV.Count;
             IEnumerator enmObra = obraDV.GetEnumerator();
 
-            this.txtLog.AppendText("TABLA OBRA... ");
+            this.txtLog.AppendText("\r\nTABLA OBRA... ");
             int i = 0;
             while (enmObra.MoveNext())
             {
@@ -158,17 +158,17 @@ namespace migrarAcc
 
                 // Buscamos el id correspondiente en la base de datos de MySql.
                 idTema = (String)fila["idTema"];
-                cmd.CommandText = $"SELECT ID FROM TEMA WHERE SHNOMBRE='{idTema}';";
+                cmd.CommandText = $"SELECT ID FROM tema WHERE SHNOMBRE='{idTema}';";
                 MySqlDataReader reader = cmd.ExecuteReader();
                 reader.Read();
                 idxTema = reader.GetInt64(0);
                 reader.Close();
 
-                cmd.CommandText = $"INSERT INTO OBRA(TITULO, COMENT, IDTEMA) VALUES({titulo}, {comentario}, {idxTema})";
+                cmd.CommandText = $"INSERT INTO obra(TITULO, COMENT, IDTEMA) VALUES({titulo}, {comentario}, {idxTema})";
                 cmd.ExecuteNonQuery();
                 i++;
             }
-            this.txtLog.AppendText($"Total registros: {nfilas} - Migrados: {i}");
+            this.txtLog.AppendText($"\r\nTotal registros: {nfilas} - Migrados: {i}");
             mysqlCon.Close();
             oledbCon.Close();
         }
@@ -184,24 +184,30 @@ namespace migrarAcc
 
             // Creamos las vistas de la base de datos Access y las ordenamos por el campo por el que buscaremos.
             oledbCon.Open();
-            OleDbDataAdapter oledbDA = new OleDbDataAdapter("SELECT * FROM AUTOR, OBRA, OBRA_AUTOR", oledbCon);
-            oledbDA.TableMappings.Add("Table", "AUTOR");
-            oledbDA.TableMappings.Add("Table1", "OBRA");
-            oledbDA.TableMappings.Add("Table2", "OBRA_AUTOR");
-            DataSet oledbDS = new DataSet();
-            oledbDA.Fill(oledbDS);
-            DataView autorDV = new DataView(oledbDS.Tables["AUTOR"]);
+            DataTable oledbDTAutor = new DataTable();
+            DataTable oledbDTObra = new DataTable();
+            DataTable oledbDTObraAutor = new DataTable();
+
+            OleDbDataAdapter oledbDA = new OleDbDataAdapter("SELECT * FROM AUTOR", oledbCon);
+            oledbDA.Fill(oledbDTAutor);
+            DataView autorDV = new DataView(oledbDTAutor);
             autorDV.Sort = "Nombre";
-            DataView obraDV= new DataView(oledbDS.Tables["OBRA"]);
+
+            oledbDA.SelectCommand.CommandText = "SELECT * FROM OBRA";
+            oledbDA.Fill(oledbDTObra);
+            DataView obraDV= new DataView(oledbDTObra);
             obraDV.Sort = "idObra";
-            DataView obraAutorDV = new DataView(oledbDS.Tables["OBRA_AUTOR"]);
+
+            oledbDA.SelectCommand.CommandText = "SELECT * FROM OBRA_AUTOR";
+            oledbDA.Fill(oledbDTObraAutor);
+            DataView obraAutorDV = new DataView(oledbDTObraAutor);
             obraAutorDV.Sort = "idAutor";
 
             int nfilas = obraAutorDV.Count;
 
             // Cargamos las tablas de la base de datos MySql
             MySqlDataAdapter mysqlAdapter = new MySqlDataAdapter();
-            mysqlAdapter.SelectCommand = new MySqlCommand("SELECT * FROM AUTOR; SELECT * FROM OBRA; SELECT * FROM AUTOR_OBRA;", mysqlCon);
+            mysqlAdapter.SelectCommand = new MySqlCommand("SELECT * FROM autor; SELECT * FROM obra; SELECT * FROM autor_obra;", mysqlCon);
             mysqlAdapter.TableMappings.Add("Table", "AUTOR");
             mysqlAdapter.TableMappings.Add("Table1", "OBRA");
             mysqlAdapter.TableMappings.Add("Table2", "AUTOR_OBRA");
@@ -259,19 +265,19 @@ namespace migrarAcc
                             idObra = (long)obras[0][0];
                         }
                         DataRow newRow = mysqlDS.Tables["AUTOR_OBRA"].NewRow();
-                        newRow["idAutor"] = idAutor;
-                        newRow["idObra"] = idObra;
+                        newRow["id_autor"] = idAutor;
+                        newRow["id_obra"] = idObra;
                         mysqlDS.Tables["AUTOR_OBRA"].Rows.Add(newRow);  // Insertamos nuevo registro en AUTOR_OBRA
                     }
                 }
                 contador++;
             }
-            MySqlCommand cmd = new MySqlCommand("INSERT INTO AUTOR_OBRA (idAutor, idObra) VALUES (@idAutor, @idObra);", mysqlCon);
-            cmd.Parameters.Add(new MySqlParameter("@idAutor", MySqlDbType.Int64, 8, "idAutor"));
-            cmd.Parameters.Add(new MySqlParameter("@idObra", MySqlDbType.Int64, 8, "idObra"));
+            MySqlCommand cmd = new MySqlCommand("INSERT INTO autor_obra(id_autor, id_obra) VALUES (@idAutor, @idObra);", mysqlCon);
+            cmd.Parameters.Add(new MySqlParameter("@idAutor", MySqlDbType.Int64, 8, "id_autor"));
+            cmd.Parameters.Add(new MySqlParameter("@idObra", MySqlDbType.Int64, 8, "id_obra"));
             mysqlAdapter.InsertCommand = cmd;
             int addedRows = mysqlAdapter.Update(mysqlDS.Tables["AUTOR_OBRA"]); // Actualizamos los registros insertados en la base de datos.
-            this.txtLog.AppendText($"Total registros AUTOR_OBRA: {nfilas} - Migrados: {addedRows}\n");
+            this.txtLog.AppendText($"\r\nTotal registros AUTOR_OBRA: {nfilas} - Migrados: {addedRows}");
             oledbCon.Close();
         }
 
@@ -284,27 +290,37 @@ namespace migrarAcc
 
             // Creamos las vistas de la base de datos Access y las ordenamos por el campo por el que buscaremos.
             oledbCon.Open();
-            OleDbDataAdapter oledbDA = new OleDbDataAdapter("SELECT * FROM OBRA, EDICION, LIBRO, OBRA_EDICION_LIBRO", oledbCon);
-            oledbDA.TableMappings.Add("Table", "OBRA");
-            oledbDA.TableMappings.Add("Table1", "EDICION");
-            oledbDA.TableMappings.Add("Table2", "LIBRO");
-            oledbDA.TableMappings.Add("Table3", "OBRA_EDICION_LIBRO");
-            DataSet oledbDS = new DataSet();
-            oledbDA.Fill(oledbDS);
-            DataView obraDV = new DataView(oledbDS.Tables["OBRA"]);
+
+            DataTable oledbDTObra = new DataTable();
+            DataTable oledbDTEdicion = new DataTable();
+            DataTable oledbDTLibro = new DataTable();
+            DataTable oledbDTObraEdicionLibro = new DataTable();
+
+            OleDbDataAdapter oledbDA = new OleDbDataAdapter("SELECT * FROM OBRA", oledbCon);
+            oledbDA.Fill(oledbDTObra);
+            DataView obraDV = new DataView(oledbDTObra);
             obraDV.Sort = "Titulo";
-            DataView edicionDV = new DataView(oledbDS.Tables["EDICION"]);
+
+            oledbDA.SelectCommand.CommandText = "SELECT * FROM EDICION";
+            oledbDA.Fill(oledbDTEdicion);
+            DataView edicionDV = new DataView(oledbDTEdicion);
             edicionDV.Sort = "idObra, idEdicion";
-            DataView libroDV = new DataView(oledbDS.Tables["LIBRO"]);
+
+            oledbDA.SelectCommand.CommandText = "SELECT * FROM LIBRO";
+            oledbDA.Fill(oledbDTLibro);
+            DataView libroDV = new DataView(oledbDTLibro);
             libroDV.Sort = "idLibro";
-            DataView obraEdicionLibroDV = new DataView(oledbDS.Tables["OBRA_EDICION_LIBRO"]);
+
+            oledbDA.SelectCommand.CommandText = "SELECT * FROM OBRA_EDICION_LIBRO";
+            oledbDA.Fill(oledbDTObraEdicionLibro);
+            DataView obraEdicionLibroDV = new DataView(oledbDTObraEdicionLibro);
             obraEdicionLibroDV.Sort = "idObra";
 
             int nfilas = libroDV.Count;
 
             // Cargamos las tablas de la base de datos MySql
             MySqlDataAdapter mysqlAdapter = new MySqlDataAdapter();
-            mysqlAdapter.SelectCommand = new MySqlCommand("SELECT * FROM OBRA; SELECT * FROM EDICION;", mysqlCon);
+            mysqlAdapter.SelectCommand = new MySqlCommand("SELECT * FROM obra; SELECT * FROM edicion;", mysqlCon);
             mysqlAdapter.TableMappings.Add("Table", "OBRA");
             mysqlAdapter.TableMappings.Add("Table1", "EDICION");
 
@@ -357,12 +373,13 @@ namespace migrarAcc
                         edicion["Notas"].Equals(System.DBNull.Value) ? libro["NotasLib"]
                         : libro["NotasLib"].Equals(System.DBNull.Value) ? edicion["Notas"]
                         : edicion["Notas"].ToString() + libro["NotasLib"].ToString();
+                    newRow["CREATED_AT"] = libro["FEntrada"];
                     mysqlDS.Tables["EDICION"].Rows.Add(newRow);  // Insertamos nuevo registro en EDICION
                 }
             }
-            MySqlCommand cmd = new MySqlCommand("INSERT INTO EDICION " +
-                "(ID_OBRA, ETIQUETA, EDITORIAL, COLECCION, LUGAR_ED, ANY_ED, TRADUCTOR, NUM_PAG, NOTAS_ED) " +
-                "VALUES (@ID_OBRA, @ETIQUETA, @EDITORIAL, @COLECCION, @LUGAR_ED, @ANY_ED, @TRADUCTOR, @NUM_PAG, @NOTAS_ED);", mysqlCon);
+            MySqlCommand cmd = new MySqlCommand("INSERT INTO edicion " +
+                "(ID_OBRA, ETIQUETA, EDITORIAL, COLECCION, LUGAR_ED, ANY_ED, TRADUCTOR, NUM_PAG, NOTAS_ED, CREATED_AT) " +
+                "VALUES (@ID_OBRA, @ETIQUETA, @EDITORIAL, @COLECCION, @LUGAR_ED, @ANY_ED, @TRADUCTOR, @NUM_PAG, @NOTAS_ED, @CREATED_AT);", mysqlCon);
             cmd.Parameters.Add(new MySqlParameter("@ID_OBRA", MySqlDbType.Int64, 8, "ID_OBRA"));
             cmd.Parameters.Add(new MySqlParameter("@ETIQUETA", MySqlDbType.VarChar, 30, "ETIQUETA"));
             cmd.Parameters.Add(new MySqlParameter("@EDITORIAL", MySqlDbType.VarChar, 60, "EDITORIAL"));
@@ -372,9 +389,10 @@ namespace migrarAcc
             cmd.Parameters.Add(new MySqlParameter("@TRADUCTOR", MySqlDbType.VarChar, 60, "TRADUCTOR"));
             cmd.Parameters.Add(new MySqlParameter("@NUM_PAG", MySqlDbType.UInt32, 4, "NUM_PAG"));
             cmd.Parameters.Add(new MySqlParameter("@NOTAS_ED", MySqlDbType.Text, 65535, "NOTAS_ED"));
+            cmd.Parameters.Add(new MySqlParameter("@CREATED_AT", MySqlDbType.VarChar, 20, "CREATED_AT"));
             mysqlAdapter.InsertCommand = cmd;
             int addedRows = mysqlAdapter.Update(mysqlDS.Tables["EDICION"]); // Actualizamos los registros insertados en la base de datos.
-            this.txtLog.AppendText($"Total registros EDICION: {nfilas} - Migrados: {addedRows}\n");
+            this.txtLog.AppendText($"\r\nTotal registros EDICION: {nfilas} - Migrados: {addedRows}");
             oledbCon.Close();
         }
     }

@@ -80,6 +80,7 @@
             // 
             // txtLog
             // 
+            this.txtLog.AcceptsReturn = true;
             this.txtLog.BackColor = System.Drawing.SystemColors.Info;
             this.txtLog.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtLog.Location = new System.Drawing.Point(44, 165);
