@@ -30,7 +30,7 @@ namespace migrarAcc
             using (Prompt prompt = new Prompt("Password BD Access"))
             {
                 string pass = prompt.Result;
-                oledbCon = new OleDbConnection("Provider=Microsoft.ACE.OLEDB.12.0;Data Source=F:\\Repo\\PERSONAL\\MiBiblioteca.mdb;Persist Security Info=True;Jet OLEDB:Database Password=" + pass);
+                oledbCon = new OleDbConnection("Provider=Microsoft.ACE.OLEDB.12.0;Data Source=E:\\Repo\\PERSONAL\\MiBiblioteca.mdb;Persist Security Info=True;Jet OLEDB:Database Password=" + pass);
             }
             MigrarAUTOR();
             MigrarTEMA();
